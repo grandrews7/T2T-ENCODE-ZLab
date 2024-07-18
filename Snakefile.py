@@ -32,8 +32,9 @@ rule all:
 
 
 ruleorder: get_fastq > merge_fastq
+
 rule get_fastq:
-    output: workDir + "/fastq1/{acc}.fastq.gz"
+    output: temp(workDir + "/fastq1/{acc}.fastq.gz")
     threads: 1
     params: url = lambda w: URLs[w.acc]
     shell:
