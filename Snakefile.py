@@ -1,6 +1,6 @@
 import pandas as pd
 from subprocess import run
-workDir = "/zata/zippy/andrewsg/scratch"
+workDir = "/zata/zippy/ramirezc/scratch"
 genomes = ["GRCh38", "T2T"]
 kmers = [str(_) for _ in range(50,101,5)]
 
@@ -21,10 +21,11 @@ print(URLs)
 
 rule all:
     input: 
-        expand(workDir + "/kmer/{genome}-k{kmer}.bigWig", genome=genomes, kmer=kmers),
-        expand(workDir + "/genome/{genome}.fa.1.bt2", genome=genomes),
-        expand(workDir + "/fastq-raw/{acc}.fastq.gz", acc=acc_list),
-        expand(workDir + "/fastq-merged/{exp}_{read}.fastq.gz", exp=experiments, read=[str(i) for i in range(1,3)])
+        # expand(workDir + "/kmer/{genome}-k{kmer}.bigWig", genome=genomes, kmer=kmers),
+        # expand(workDir + "/genome/{genome}.fa.1.bt2", genome=genomes),
+        # expand(workDir + "/fastq-raw/{acc}.fastq.gz", acc=acc_list),
+        # expand(workDir + "/fastq-merged/{exp}_{read}.fastq.gz", exp=experiments, read=[str(i) for i in range(1,3)]),
+        expand(workDir + "/fastq-trimmed/{exp}_1.paired.fastq.gz", exp=experiments),
 
 # rule all:
 #     input:
@@ -56,42 +57,42 @@ rule merge_fastq:
     output: 
         fq1 = workDir + "/fastq-merged/{exp}_1.fastq.gz",
         fq2 = workDir + "/fastq-merged/{exp}_2.fastq.gz"
-    threads: 1
     params:
-        fastq-rawDir = workDir + "/fastq-raw",
-        fastq-mergedDir = workDir + "/fastq-merged",
+        fastqrawDir = workDir + "/fastq-raw",
+        fastqmergedDir = workDir + "/fastq-merged",
         R1 = lambda w: get_R1(w.exp),
         R2 = lambda w: get_R2(w.exp)
-    shell:
+    shell: #implement pigz (multithreaded compression util) and add -1 flag on zcat to use "faster" decompression
         """
         for acc in {params.R1}; do
-            zcat {params.fastq-rawDir}/$acc.fastq.gz >> {params.fastq-mergedDir}/{wildcards.exp}_1.fastq
+            zcat {params.fastqrawDir}/$acc.fastq.gz >> {params.fastqmergedDir}/{wildcards.exp}_1.fastq 
         done
 
         for acc in {params.R2}; do
-            zcat {params.fastq-rawDir}/$acc.fastq.gz >> {params.fastq-mergedDir}/{wildcards.exp}_2.fastq
+            zcat {params.fastqrawDir}/$acc.fastq.gz >> {params.fastqmergedDir}/{wildcards.exp}_2.fastq
         done
-        gzip {params.fastq-mergedDir}/{wildcards.exp}_1.fastq
-        gzip {params.fastq-mergedDir}/{wildcards.exp}_2.fastq
+        gzip {params.fastqmergedDir}/{wildcards.exp}_1.fastq
+        gzip {params.fastqmergedDir}/{wildcards.exp}_2.fastq
         #touch {output.fq1}
         #touch {output.fq2}
         """
 
 rule trimmomatic:
     input: 
-        fq1 = workDir + "/fastq-merged/{exp}_1.fastq",
-        fq2 = workDir + "/fastq-merged/{exp}_2.fastq"
+        fq1 = workDir + "/fastq-merged/{exp}_1.fastq.gz",
+        fq2 = workDir + "/fastq-merged/{exp}_2.fastq.gz",
     output: 
-        fq1Paired = temp(workDir + "/fastq-trimmed/{exp}_1.paired.fastq")
-        fq1Unpaired = temp(workDir + "/fastq-trimmed/{exp}_1.unpaired.fastq")
-        fq1Paired = temp(workDir + "/fastq-trimmed/{exp}_2.paired.fastq")
-        fq2Unpaired = temp(workDir + "/fastq-trimmed/{exp}_1.unpaired.fastq")
+        fq1Paired = temp(workDir + "/fastq-trimmed/{exp}_1.paired.fastq.gz"),
+        fq1Unpaired = temp(workDir + "/fastq-trimmed/{exp}_1.unpaired.fastq.gz"),
+        fq2Paired = temp(workDir + "/fastq-trimmed/{exp}_2.paired.fastq.gz"),
+        fq2Unpaired = temp(workDir + "/fastq-trimmed/{exp}_2.unpaired.fastq.gz"),
     threads: 24
     params:
-        step = "string"
+        trimmomatic = "/opt/Trimmomatic-0.39/trimmomatic-0.39.jar"
+        trimMethod = "LEADING:3 TRAILING:3 MINLEN:36"
     shell:
         """
-        java -jar trimmomatic-0.39 PE -phred64 -threads {threads} {input.fq1} {input.fq2} {output.fq1Paired} {output.fq1Unpaired} {output.fq2Paired} {output.fq2Unpaired} {params.step}
+        java -jar {params.trimmomatic) PE -phred64 -threads {threads} {input.fq1} {input.fq2} {output.fq1Paired} {output.fq1Unpaired} {output.fq2Paired} {output.fq2Unpaired} {params.trim}
         """
 
 rule get_genome:
