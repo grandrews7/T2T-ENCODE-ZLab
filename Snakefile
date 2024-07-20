@@ -11,7 +11,7 @@ min_version("6.0")
 #     acc=acc_list
 
 #Config
-kmc_genome_count_jobs = 1
+kmc_genome_count_jobs = 1 #Limits kmc_genome_counts rule to 1 job at a time
 work_dir = "/zata/zippy/ramirezc/scratch"
 genomes = ["GRCh38", "T2T"]
 kmers = [str(_) for _ in range(50,101,5)]
@@ -39,8 +39,16 @@ ruleorder: get_fastq > merge_fastq
 rule get_fastq:
     output: temp(work_dir + "/fastq-raw/{acc}.fastq.gz"),
     threads: 1
+    resources:
+        mem_mb=4000,
+        c=1,
+        runtime=240,
+        nodes=1,
+        slurm_partition="4hours"
     log:
         work_dir + "/logs/get_fastq/{acc}.log",
+    singularity:
+        "docker://clarity001/t2t-encode",
     params: 
         url = lambda w: URLs[w.acc]
     shell:
@@ -68,16 +76,16 @@ rule merge_fastq:
         fq1 = work_dir + "/fastq-merged/{exp}_1.fastq.gz",
         fq2 = work_dir + "/fastq-merged/{exp}_2.fastq.gz",
     threads: 24
-    # resources:
-    #     mem_mb=240000,
-    #     c=24,
-    #     runtime=240,
-    #     nodes=1,
-    #     slurm_partition="4hours"
+    resources:
+        mem_mb=240000,
+        c=24,
+        runtime=240,
+        nodes=1,
+        slurm_partition="4hours"
     log:
         work_dir + "/logs/merge_fastq/{exp}.log",
     singularity:
-        "docker://andrewsg/t2t-encode",
+        "docker://clarity001/t2t-encode",
     params:
         fastq_raw_dir = work_dir + "/fastq-raw",
         fastq_merged_dir = work_dir + "/fastq-merged",
@@ -90,16 +98,20 @@ rule merge_fastq:
         set -o pipefail
         echo "Merging fastq files"
         for acc in {params.R1}; do
-            zcat -1 {params.fastq_raw_dir}/$acc.fastq.gz >> {params.fastq_merged_dir}/{wildcards.exp}_1.fastq 
+            # zcat -1 {params.fastq_raw_dir}/$acc.fastq.gz >> {params.fastq_merged_dir}/{wildcards.exp}_1.fastq
+            pigz -cd -p {threads} {params.fastq_raw_dir}/$acc.fastq.gz >> {params.fastq_merged_dir}/{wildcards.exp}_1.fastq
         done
 
         for acc in {params.R2}; do
-            zcat -1 {params.fastq_raw_dir}/$acc.fastq.gz >> {params.fastq_merged_dir}/{wildcards.exp}_2.fastq
+            # zcat -1 {params.fastq_raw_dir}/$acc.fastq.gz >> {params.fastq_merged_dir}/{wildcards.exp}_2.fastq
+            pigz -cd -p {threads} {params.fastq_raw_dir}/$acc.fastq.gz >> {params.fastq_merged_dir}/{wildcards.exp}_2.fastq
         done
+        # gzip -1 {params.fastq_merged_dir}/{wildcards.exp}_1.fastq
+        # gzip -1 {params.fastq_merged_dir}/{wildcards.exp}_2.fastq
         pigz -p {threads} {params.fastq_merged_dir}/{wildcards.exp}_1.fastq
         pigz -p {threads} {params.fastq_merged_dir}/{wildcards.exp}_2.fastq
-        #touch {output.fq1}
-        #touch {output.fq2}
+        # touch {output.fq1}
+        # touch {output.fq2}
         ) &> {log}
         """
 
@@ -115,16 +127,16 @@ rule trimmomatic:
         fq2_paired = temp(work_dir + "/fastq-trimmed/{exp}_2.paired.fastq.gz"),
         fq2_unpaired = temp(work_dir + "/fastq-trimmed/{exp}_2.unpaired.fastq.gz"),
     threads: 24
-    # resources:
-    #     mem_mb=240000,
-    #     c=24,
-    #     runtime=240,
-    #     nodes=1,
-    #     slurm_partition="4hours"
+    resources:
+        mem_mb=240000,
+        c=24,
+        runtime=240,
+        nodes=1,
+        slurm_partition="4hours"
     log:
         work_dir + "/logs/trimmomatic/{exp}.log",
     singularity:
-        "docker://andrewsg/t2t-encode",
+        "docker://clarity001/t2t-encode",
     params:
         trimmomatic = "/opt/Trimmomatic-0.39/trimmomatic-0.39.jar",
         trim_method = "LEADING:3 TRAILING:3 SLIDINGWINDOW:4:15 MINLEN:36",
@@ -143,16 +155,16 @@ rule get_genome:
         fa = work_dir + "/genome/{genome}.fa",
         sizes = work_dir + "/genome/{genome}.sizes.txt",
     threads: 1
-    # resources:
-    #     mem_mb=4000,
-    #     c=1,
-    #     runtime=240,
-    #     nodes=1,
-    #     slurm_partition="4hours"
+    resources:
+        mem_mb=4000,
+        c=1,
+        runtime=240,
+        nodes=1,
+        slurm_partition="4hours"
     log:
         work_dir + "/logs/get_genome/{genome}.log"
     singularity:
-        "docker://andrewsg/t2t-encode"
+        "docker://clarity001/t2t-encode"
     shell:
         """
         (
@@ -180,16 +192,16 @@ rule bowtie2_build:
         fa = work_dir + "/genome/{genome}.fa",
     output: multiext(work_dir + "/genome/{genome}.fa", ".1.bt2", ".2.bt2", ".3.bt2", ".4.bt2", ".rev.1.bt2", ".rev.2.bt2")
     threads: 24
-    # resources:
-    #     mem_mb=240000,
-    #     c=24,
-    #     runtime=240,
-    #     nodes=1,
-    #     slurm_partition="4hours"
+    resources:
+        mem_mb=240000,
+        c=24,
+        runtime=240,
+        nodes=1,
+        slurm_partition="4hours"
     log:
         work_dir + "/logs/bowtie2_build/{genome}.log"
     singularity:
-        "docker://andrewsg/t2t-encode"
+        "docker://clarity001/t2t-encode"
     params: 
         prefix = work_dir
     shell:
@@ -210,16 +222,16 @@ rule bowtie2_align:
     output:
         temp(work_dir + "/aligned/{genome}-{exp}.raw.bam"),
     threads: 24
-    # resources:
-    #     mem_mb=240000,
-    #     c=24,
-    #     runtime=240,
-    #     nodes=1,
-    #     slurm_partition="4hours"
+    resources:
+        mem_mb=240000,
+        c=24,
+        runtime=240,
+        nodes=1,
+        slurm_partition="4hours"
     log:
         work_dir + "/logs/bowtie2_align/{genome}-{exp}.log"
     singularity:
-        "docker://andrewsg/t2t-encode"
+        "docker://clarity001/t2t-encode"
     shell:
         """
         (
@@ -240,7 +252,7 @@ rule samtools_presort:
     input:
         work_dir + "/aligned/{genome}-{exp}.raw.bam",
     output:
-        temp(work_dir + "/aligned/{genome}-{exp}.presorted.bam")
+        temp(work_dir + "/aligned/{genome}-{exp}.presorted.bam"),
     threads: 24
     resources:
         mem_mb=240000,
@@ -251,7 +263,7 @@ rule samtools_presort:
     log:
         work_dir + "/logs/samtools_presort/{genome}-{exp}.log",
     singularity:
-        "docker://andrewsg/t2t-encode",
+        "docker://clarity001/t2t-encode",
     shell:
         """
         (
@@ -268,16 +280,16 @@ rule samtools_index:
     output:
         index = temp(work_dir + "/aligned/{genome}-{exp}.bam.bai"),
     threads: 24
-    # resources:
-    #     mem_mb=240000,
-    #     c=24,
-    #     runtime=240,
-    #     nodes=1,
-    #     slurm_partition="4hours"
+    resources:
+        mem_mb=240000,
+        c=24,
+        runtime=240,
+        nodes=1,
+        slurm_partition="4hours"
     log:
         work_dir + "/logs/samtools_index/{genome}-{exp}.log"
     singularity:
-        "docker://andrewsg/t2t-encode"
+        "docker://clarity001/t2t-encode"
     shell:
         """
         (
@@ -297,16 +309,16 @@ rule samtools_filter:
     output:
         work_dir + "/aligned/{genome}-{exp}.filtered.bam"
     threads: 24
-    # resources:
-    #     mem_mb=240000,
-    #     c=24,
-    #     runtime=240,
-    #     nodes=1,
-    #     slurm_partition="4hours"
+    resources:
+        mem_mb=240000,
+        c=24,
+        runtime=240,
+        nodes=1,
+        slurm_partition="4hours"
     log:
         work_dir + "/logs/samtools-filter/{genome}-{exp}.log",
     singularity:
-        "docker://andrewsg/t2t-encode",
+        "docker://clarity001/t2t-encode",
     params:
         presort = work_dir + "/aligned/{genome}-{exp}.presorted.bam",
     shell:
@@ -328,16 +340,16 @@ rule kmc:
         pre = work_dir + "/kmer/{genome}-k{kmer}.kmc_pre",
         shuf = work_dir + "/kmer/{genome}-k{kmer}.kmc_suf"
     threads: 24
-    # resources:
-    #     mem_mb=240000,
-    #     c=24,
-    #     runtime=240,
-    #     nodes=1,
-    #     slurm_partition="4hours"
+    resources:
+        mem_mb=240000,
+        c=24,
+        runtime=240,
+        nodes=1,
+        slurm_partition="4hours"
     log:
         work_dir + "/logs/kmc/{genome}-k{kmer}.log"
     singularity:
-        "docker://andrewsg/t2t-encode"
+        "docker://clarity001/t2t-encode"
     params: prefix = work_dir
     shell:
         """
@@ -350,26 +362,26 @@ rule kmc:
         ) &> {log}
         """
 
-rule kmc_genome_counts: #ensure to run use these flags: --cores all --resources kmc_genome_count_jobs=1 
+rule kmc_genome_counts: #ensure to run use flags --cores all --resources kmc_genome_count_jobs=1 
     input:
         fa = work_dir + "/genome/{genome}.fa",
         sizes = work_dir + "/genome/{genome}.sizes.txt",
         pre = work_dir + "/kmer/{genome}-k{kmer}.kmc_pre",
         shuf = work_dir + "/kmer/{genome}-k{kmer}.kmc_suf",
     output:
-        wig = workDir + "kmer/{genome}-k{kmer}.wig",
+        wig = work_dir + "/kmer/{genome}-k{kmer}.wig",
     threads: 24
     resources:
-    #     mem_mb=240000,
-    #     c=16,
-    #     runtime=240,
-    #     nodes=1,
-    #     slurm_partition="4hours"
-        kmc_genome_count_jobs=1
+        mem_mb=240000,
+        c=16,
+        runtime=240,
+        nodes=1,
+        slurm_partition="4hours",
+        kmc_genome_count_jobs=1,
     log:
-        work_dir + "/logs/kmc_genome_counts/{genome}-k{kmer}.log"
+        work_dir + "/logs/kmc_genome_counts/{genome}-k{kmer}.log",
     singularity:
-        "docker://andrewsg/t2t-encode"
+        "docker://clarity001/t2t-encode"
     params: 
         prefix = work_dir
     shell:
@@ -378,26 +390,27 @@ rule kmc_genome_counts: #ensure to run use these flags: --cores all --resources 
         set -e
         set -o pipefail
         echo 'Obtaining genome counts'
-        kmc_genome_counts -t{threads} {params.prefix}/kmer/{wildcards.genome}-k{wildcards.kmer} {input.fa} > /tmp/{wildcards.genome}-k{wildcards.kmer}.wig
+        kmc_genome_counts -t{threads} {params.prefix}/kmer/{wildcards.genome}-k{wildcards.kmer} {input.fa} > {output.wig}
+        ) &> {log}
         """
 
 rule wigToBigWig:
     input:
-        wig = workDir + "kmer/{genome}-k{kmer}.wig",
-        sizes = workDir + "genome/{genome}.sizes.txt",
+        wig = work_dir + "/kmer/{genome}-k{kmer}.wig",
+        sizes = work_dir + "/genome/{genome}.sizes.txt",
     output:
-        bw = workDir + "kmer/{genome}-k{kmer}.bw",
+        bw = work_dir + "/kmer/{genome}-k{kmer}.bw",
     threads: 24
     resources:
-    #     mem_mb=240000,
-    #     c=16,
-    #     runtime=240,
-    #     nodes=1,
-    #     slurm_partition="4hours"
+        mem_mb=4000,
+        c=1,
+        runtime=240,
+        nodes=1,
+        slurm_partition="4hours",
     log:
         work_dir + "/logs/wigToBigWig/{genome}-k{kmer}.log"
     singularity:
-        "docker://andrewsg/t2t-encode"
+        "docker://clarity001/t2t-encode"
     shell:
         """
         (
@@ -415,16 +428,16 @@ rule unique_kmer_filtering:
     output:
         temp(work_dir + "/aligned/{genome}-{exp}-k{kmer}.bam"),
     threads: 1
-    # resources:
-    #     mem_mb=240000,
-    #     c=24,
-    #     runtime=240,
-    #     nodes=1,
-    #     slurm_partition="4hours"
+    resources:
+        mem_mb=4000,
+        c=1,
+        runtime=240,
+        nodes=1,
+        slurm_partition="4hours"
     log:
         work_dir + "/logs/kmc_genome_counts/{genome}-{exp}-k{kmer}.log"
     singularity:
-        "docker://andrewsg/t2t-encode"
+        "docker://clarity001/t2t-encode"
     params:
         template = work_dir + "/kmer/{genome}-k*.bw",
         py_script = "/opt/T2T_Encode_Analysis/bin/filter_by_unique_kmers.py"
@@ -444,16 +457,16 @@ rule samtools_postsort:
     output:
         work_dir + "/output/{genome}-{exp}-k{kmer}.postsort.bam",
     threads: 24
-    # resources:
-    #     mem_mb=240000,
-    #     c=24,
-    #     runtime=240,
-    #     nodes=1,
-    #     slurm_partition="4hours"
+    resources:
+        mem_mb=240000,
+        c=24,
+        runtime=240,
+        nodes=1,
+        slurm_partition="4hours"
     log:
-        work_dir + "/logs/samtools_postsort/{genome}-k{kmer}.log",
+        work_dir + "/logs/samtools_postsort/{genome}-{exp}-k{kmer}.log",
     singularity:
-        "docker://andrewsg/t2t-encode"
+        "docker://clarity001/t2t-encode"
     shell:
         """
         (
