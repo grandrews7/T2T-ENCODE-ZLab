@@ -33,6 +33,12 @@ RUN cd /opt && \
     make && \ 
     chmod a+rx bin/kmc && \
     chmod a+rx bin/kmc_genome_counts
+
+RUN cd /opt && \
+    git clone https://github.com/msauria/T2T_Encode_Analysis.git && \
+    cd T2T_Encode_Analysis && \
+    chmod a+rx bin/filter_by_unique_kmers.py && \
+    pip install pysam pyBigWig numpy
     
 RUN cd /usr/bin && \
      wget https://github.com/samtools/samtools/releases/download/1.20/samtools-1.20.tar.bz2 && \
@@ -46,7 +52,6 @@ RUN cd /opt && \
     git clone https://github.com/broadinstitute/picard.git && \
     cd picard/ && \
     ./gradlew shadowJar
-
 
 RUN cd /opt && \
     wget http://www.usadellab.org/cms/uploads/supplementary/Trimmomatic/Trimmomatic-0.39.zip && \
@@ -62,4 +67,4 @@ RUN cd /opt && \
     cd FastQC && \
     chmod +x fastqc
      
-ENV PATH="/usr/bin/samtools/bin:/opt/KMC:/opt/KMC/bin:/opt/picard/build/libs:/opt/FastQC:/opt/Trimmomatic-0.39:${PATH}"
+ENV PATH="/usr/bin/samtools/bin:/opt/KMC:/opt/KMC/bin:/opt/picard/build/libs:/opt/FastQC:/opt/Trimmomatic-0.39:/opt/T2T_Encode_Analysis/bin:${PATH}"
