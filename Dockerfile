@@ -1,5 +1,5 @@
 FROM ubuntu:22.04
-MAINTAINER Greg Andrews <gregory.andrews@umassmed.edu>
+MAINTAINER Chrisitan Ramirez <christian.ramirez1@umassmed.edu>
 ARG DEBIAN_FRONTEND=noninteractive
 ENV TZ="America/New_York"
 
@@ -12,6 +12,7 @@ RUN apt-get update && \
     curl \
     git \
     zip \
+    pigz \
     bedtools \
     bowtie2 \
     # for samtools 
@@ -21,6 +22,9 @@ RUN apt-get update && \
     liblzma-dev \
     default-jre \
     openjdk-17-jdk openjdk-17-jre
+
+RUN pip install --upgrade pip && \
+    pip install pysam pyBigWig numpy
 
 RUN for i in wigToBigWig liftOver bigBedToBed bedToBigBed; do \
      wget -q http://hgdownload.soe.ucsc.edu/admin/exe/linux.x86_64/$i -O /bin/$i ; chmod +x /bin/$i ; done
@@ -32,7 +36,6 @@ RUN cd /opt && \
     make && \ 
     chmod a+rx bin/kmc && \
     chmod a+rx bin/kmc_genome_counts
-    
 
 RUN cd /usr/bin && \
      wget https://github.com/samtools/samtools/releases/download/1.20/samtools-1.20.tar.bz2 && \
@@ -46,7 +49,6 @@ RUN cd /opt && \
     git clone https://github.com/broadinstitute/picard.git && \
     cd picard/ && \
     ./gradlew shadowJar
-
 
 RUN cd /opt && \
     wget http://www.usadellab.org/cms/uploads/supplementary/Trimmomatic/Trimmomatic-0.39.zip && \
@@ -62,11 +64,4 @@ RUN cd /opt && \
     cd FastQC && \
     chmod +x fastqc
     
-# Add FastQC
-     
 ENV PATH="/usr/bin/samtools/bin:/opt/KMC:/opt/KMC/bin:/opt/picard/build/libs:/opt/FastQC:/opt/Trimmomatic-0.39:${PATH}"
-
-
-
-
-    
