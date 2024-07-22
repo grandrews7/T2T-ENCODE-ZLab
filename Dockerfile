@@ -23,6 +23,9 @@ RUN apt-get update && \
     default-jre \
     openjdk-17-jdk openjdk-17-jre
 
+RUN pip install --upgrade pip && \
+    pip install pysam pyBigWig numpy
+
 RUN for i in wigToBigWig liftOver bigBedToBed bedToBigBed; do \
      wget -q http://hgdownload.soe.ucsc.edu/admin/exe/linux.x86_64/$i -O /bin/$i ; chmod +x /bin/$i ; done
 
@@ -34,12 +37,6 @@ RUN cd /opt && \
     chmod a+rx bin/kmc && \
     chmod a+rx bin/kmc_genome_counts
 
-RUN cd /opt && \
-    git clone https://github.com/msauria/T2T_Encode_Analysis.git && \
-    cd T2T_Encode_Analysis && \
-    chmod a+rx bin/filter_by_unique_kmers.py && \
-    pip install pysam pyBigWig numpy
-    
 RUN cd /usr/bin && \
      wget https://github.com/samtools/samtools/releases/download/1.20/samtools-1.20.tar.bz2 && \
      tar -vxjf samtools-1.20.tar.bz2 && \
