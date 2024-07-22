@@ -4,10 +4,10 @@ rule bowtie2_align:
         fq2_paired = work_dir + "/fastq-trimmed/{exp}_2.P.fastq.gz",
     output:
         work_dir + "/aln-raw/{genome}-{exp}.bam",
-    threads: 24
+    threads: 64
     resources:
         mem_mb=240000,
-        c=24,
+        c=64,
         runtime=240,
         nodes=1,
         slurm_partition="4hours"
@@ -34,10 +34,10 @@ rule samtools_sort:
         work_dir + "/aln-raw/{genome}-{exp}.bam",
     output:
         temp(work_dir + "/aln-raw/{genome}-{exp}.presorted.bam"),
-    threads: 32
+    threads: 24
     resources:
-        mem_mb=240000,
-        c=32,
+        mem_mb=90000,
+        c=24,
         runtime=240,
         nodes=1,
         slurm_partition="4hours",

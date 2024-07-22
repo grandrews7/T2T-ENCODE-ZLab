@@ -6,7 +6,7 @@ def get_reads(exp, read):
 
     
 rule get_fastq:
-    output: work_dir + "/fastq-raw/{acc}.fastq.gz",
+    output: temp(work_dir + "/fastq-raw/{acc}.fastq.gz"),
     threads: 1
     resources:
         mem_mb=4000,
@@ -19,19 +19,25 @@ rule get_fastq:
     singularity:
         "docker://clarity001/t2t-encode",
     params: 
-        url = lambda w: URLs[w.acc]
+        url = lambda w: URLs[w.acc],
+        md5sum = lambda w: MD5SUMs[w.acc]
     shell:
         """
         (
         echo "Downloading fastq files"
-        wget -q -O {output} {params.url}
+        checksum=""
+        while [ "$checksum" != {params.md5sum} ]
+        do
+            wget -q -O {output} {params.url}
+            checksum=$(md5sum {output} | awk '{{print $1; exit}}')
+        done
         ) &> {log}
         """
 
 rule merge_fastq:
     input: get_exp_fastq_list
     output: 
-        work_dir + "/fastq-merged/{exp}_{read}.fastq.gz"
+        temp(work_dir + "/fastq-merged/{exp}_{read}.fastq")
     threads: 8
     resources:
         mem_mb=16000,
@@ -57,6 +63,5 @@ rule merge_fastq:
             echo $acc
             pigz -cd -p {threads} {params.fastq_raw_dir}/$acc.fastq.gz >> {params.fastq_merged_dir}/{wildcards.exp}_{wildcards.read}.fastq
         done
-        pigz -p {threads} {params.fastq_merged_dir}/{wildcards.exp}_{wildcards.read}.fastq
         ) &> {log}
         """

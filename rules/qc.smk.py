@@ -1,16 +1,16 @@
 rule trim:
     input: 
-        fq1 = work_dir + "/fastq-merged/{exp}_1.fastq.gz",
-        fq2 = work_dir + "/fastq-merged/{exp}_2.fastq.gz",
+        fq1 = work_dir + "/fastq-merged/{exp}_1.fastq",
+        fq2 = work_dir + "/fastq-merged/{exp}_2.fastq",
     output: 
         fq1_paired = work_dir + "/fastq-trimmed/{exp}_1.P.fastq.gz",
         fq1_unpaired = work_dir + "/fastq-trimmed/{exp}_1.U.fastq.gz",
         fq2_paired = work_dir + "/fastq-trimmed/{exp}_2.P.fastq.gz",
         fq2_unpaired = work_dir + "/fastq-trimmed/{exp}_2.U.fastq.gz",
-    threads: 8
+    threads: 24
     resources:
-        mem_mb=32000,
-        c=8,
+        mem_mb=90000,
+        c=24,
         runtime=240,
         nodes=1,
         slurm_partition="4hours"

@@ -22,6 +22,7 @@ metadata = metadata[metadata["exp"] == "ENCSR590IHT"]
 experiments = metadata.exp.unique().tolist()
 acc_list = metadata.acc.tolist()
 URLs = dict(zip(metadata.acc, metadata.url))
+MD5SUMs = dict(zip(metadata.acc, metadata.md5sum))
 print(URLs)
 
 # import rules
@@ -32,20 +33,8 @@ include: "./rules/aln.smk.py"
 
 rule all:
     input: 
-        # expand(work_dir + "/genome/{genome}.fa", genome=genomes),
-        # expand(work_dir + "/kmer/{genome}-k{kmer}.kmc_pre", genome=genomes, kmer=kmers),
-        # expand(work_dir + "/kmer/{genome}-k{kmer}.bw", genome=genomes, kmer=kmers),
-        # expand(work_dir + "/genome/{genome}.fa.1.bt2", genome=genomes),
-        # expand(work_dir + "/fastq-raw/{acc}.fastq.gz", acc=acc_list)
-        # expand(work_dir + "/fastq-merged/{exp}_{read}.fastq.gz", exp=experiments, read=[str(i) for i in range(1,3)]),
-        # expand(work_dir + "/fastq-trimmed/{exp}_1.P.fastq.gz", exp=experiments),
-        expand(work_dir + "/aln-raw/{genome}-{exp}.bam", genome=genomes, exp=experiments),
-        # expand(work_dir + "/aligned/{genome}-{exp}.presorted.bam", genome=genomes, exp=experiments),
-        # expand(work_dir + "/aligned/{genome}-{exp}.bam.bai", genome=genomes, exp=experiments),
-        # expand(work_dir + "/aligned/{genome}-{exp}.filtered.bam", genome=genomes, exp=experiments),
-        # expand(work_dir + "/aligned/{genome}-{exp}-k{kmer}.bam", genome=genomes, exp=experiments, kmer=kmers),
-        # expand(work_dir + "/output/{genome}-{exp}-k{kmer}.postsort.bam", genome=genomes, exp=experiments, kmer=kmers)
-
+        expand(work_dir + "/aln-raw/{genome}-{exp}.bam", genome=genomes, exp=experiments)
+        # expand(work_dir + "/fastq-trimmed/{exp}_{read}.P.fastq.gz", exp=experiments, read = [str(i) for i in range(1,3)])
 
     
 #fastqc prescreen
@@ -110,62 +99,62 @@ rule samtools_filter:
         """
 
 
-rule unique_kmer_filtering:
-    input:
-        bigWigs = expand(work_dir + "/kmer/{genome}-k{kmer}.bw", kmer=kmers)
-        bam = work_dir + "/aln-filtered/{genome}-{exp}.filtered.bam",
-    output:
-        work_dir + "/aln-final/.bam"),
-    threads: 1
-    resources:
-        mem_mb=4000,
-        c=1,
-        runtime=240,
-        nodes=1,
-        slurm_partition="4hours"
-    log:
-        work_dir + "/logs/unique_kmer_filtering/{genome}-{exp}-k{kmer}.log"
-    singularity:
-        "docker://clarity001/t2t-encode"
-    params:
-        template =  work_dir + "/BigWig/{genome}-k{kmer}-bw/{genome}-k*.bw",
-        py_script = "/opt/T2T_Encode_Analysis/bin/filter_by_unique_kmers.py"
-    shell:
-        """
-        (
-        set -e
-        set -o pipefail
-        echo "Filtering unique kmers"
-        python3 {params.py_script} {input.filtered} {params.template} {wildcards.kmer} {output}
-        ) &> {log}
-        """
+# rule unique_kmer_filtering:
+#     input:
+#         bigWigs = expand(work_dir + "/kmer/{genome}-k{kmer}.bw", kmer=kmers)
+#         bam = work_dir + "/aln-filtered/{genome}-{exp}.filtered.bam",
+#     output:
+#         work_dir + "/aln-final/.bam"),
+#     threads: 1
+#     resources:
+#         mem_mb=4000,
+#         c=1,
+#         runtime=240,
+#         nodes=1,
+#         slurm_partition="4hours"
+#     log:
+#         work_dir + "/logs/unique_kmer_filtering/{genome}-{exp}-k{kmer}.log"
+#     singularity:
+#         "docker://clarity001/t2t-encode"
+#     params:
+#         template =  work_dir + "/BigWig/{genome}-k{kmer}-bw/{genome}-k*.bw",
+#         py_script = "/opt/T2T_Encode_Analysis/bin/filter_by_unique_kmers.py"
+#     shell:
+#         """
+#         (
+#         set -e
+#         set -o pipefail
+#         echo "Filtering unique kmers"
+#         python3 {params.py_script} {input.filtered} {params.template} {wildcards.kmer} {output}
+#         ) &> {log}
+#         """
 
-rule samtools_postsort:
-    input:
-        work_dir + "/aligned/{genome}-{exp}-k{kmer}.bam",
-    output:
-        work_dir + "/output/{genome}-{exp}-k{kmer}.postsort.bam",
-    threads:2
-    resources:
-        mem_mb=240000,
-        c=32,
-        runtime=240,
-        nodes=1,
-        slurm_partition="4hours"
-    log:
-        work_dir + "/logs/samtools_postsort/{genome}-{exp}-k{kmer}.log",
-    singularity:
-        "docker://clarity001/t2t-encode"
-    shell:
-        """
-        (
-        set -e
-        set -o pipefail
-        echo "Running samtools sort"
-        samtools sort \
-        -o {output} \
-        {input} \
-        --threads {threads}
-        echo "Done"
-        ) &> {log}
-        """
+# rule samtools_postsort:
+#     input:
+#         work_dir + "/aligned/{genome}-{exp}-k{kmer}.bam",
+#     output:
+#         work_dir + "/output/{genome}-{exp}-k{kmer}.postsort.bam",
+#     threads:2
+#     resources:
+#         mem_mb=240000,
+#         c=32,
+#         runtime=240,
+#         nodes=1,
+#         slurm_partition="4hours"
+#     log:
+#         work_dir + "/logs/samtools_postsort/{genome}-{exp}-k{kmer}.log",
+#     singularity:
+#         "docker://clarity001/t2t-encode"
+#     shell:
+#         """
+#         (
+#         set -e
+#         set -o pipefail
+#         echo "Running samtools sort"
+#         samtools sort \
+#         -o {output} \
+#         {input} \
+#         --threads {threads}
+#         echo "Done"
+#         ) &> {log}
+#         """
