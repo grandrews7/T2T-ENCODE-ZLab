@@ -47,7 +47,6 @@ RUN cd /usr/bin && \
 RUN cd /opt && \
     git clone https://github.com/broadinstitute/picard.git && \
     cd picard/ && \
-    git checkout 5db8017 &&
     ./gradlew shadowJar
 
 RUN cd /opt && \
