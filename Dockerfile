@@ -1,5 +1,4 @@
 FROM ubuntu:22.04
-MAINTAINER Chrisitan Ramirez <christian.ramirez1@umassmed.edu>
 ARG DEBIAN_FRONTEND=noninteractive
 ENV TZ="America/New_York"
 
@@ -37,10 +36,11 @@ RUN cd /opt && \
     chmod a+rx bin/kmc && \
     chmod a+rx bin/kmc_genome_counts
 
+ENV SAMTOOLS_VER="1.17"
 RUN cd /usr/bin && \
-     wget https://github.com/samtools/samtools/releases/download/1.20/samtools-1.20.tar.bz2 && \
-     tar -vxjf samtools-1.20.tar.bz2 && \
-     cd samtools-1.20 && \
+     wget https://github.com/samtools/samtools/releases/download/"$SAMTOOLS_VER"/samtools-"$SAMTOOLS_VER".tar.bz2 && \
+     tar -vxjf samtools-"$SAMTOOLS_VER".tar.bz2 && \
+     cd samtools-"$SAMTOOLS_VER" && \
      ./configure --prefix=/usr/bin/samtools && \
      make && \
      make install
