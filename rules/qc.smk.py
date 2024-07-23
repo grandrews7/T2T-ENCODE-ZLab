@@ -1,12 +1,19 @@
+def get_fastq_list(wildcards):
+    print(wildcards.exp, wildcards.biorep)
+    tmp = metadata[(metadata["exp"] == wildcards.exp) & (metadata["biorep"] == int(wildcards.biorep))].reset_index(drop=True)
+    tmp = tmp.sort_values("read", ascending=True)
+    print(tmp)
+    return([work_dir + "/fastq-raw/" + acc + ".fastq.gz" for acc in tmp.acc.tolist()])
+
+
 rule trim:
     input: 
-        fq1 = work_dir + "/fastq-merged/{exp}_1.fastq",
-        fq2 = work_dir + "/fastq-merged/{exp}_2.fastq",
+        get_fastq_list
     output: 
-        fq1_paired = work_dir + "/fastq-trimmed/{exp}_1.P.fastq.gz",
-        fq1_unpaired = work_dir + "/fastq-trimmed/{exp}_1.U.fastq.gz",
-        fq2_paired = work_dir + "/fastq-trimmed/{exp}_2.P.fastq.gz",
-        fq2_unpaired = work_dir + "/fastq-trimmed/{exp}_2.U.fastq.gz",
+        fq1_paired = work_dir + "/fastq-trimmed/{exp}-{biorep}_1.P.fastq.gz",
+        fq1_unpaired = work_dir + "/fastq-trimmed/{exp}-{biorep}_1.U.fastq.gz",
+        fq2_paired = work_dir + "/fastq-trimmed/{exp}-{biorep}_2.P.fastq.gz",
+        fq2_unpaired = work_dir + "/fastq-trimmed/{exp}-{biorep}_2.U.fastq.gz",
     threads: 24
     resources:
         mem_mb=90000,
@@ -15,7 +22,7 @@ rule trim:
         nodes=1,
         slurm_partition="4hours"
     log:
-        work_dir + "/logs/trimmomatic/{exp}.log",
+        work_dir + "/logs/trimmomatic/{exp}-{biorep}.log",
     singularity:
         "docker://clarity001/t2t-encode",
     params:
@@ -25,6 +32,6 @@ rule trim:
         """
         (
         echo "Trimming fastq files"
-        java -jar {params.trimmomatic} PE -phred33 -threads {threads} {input.fq1} {input.fq2} {output.fq1_paired} {output.fq1_unpaired} {output.fq2_paired} {output.fq2_unpaired} {params.trim_method}
+        java -jar {params.trimmomatic} PE -phred33 -threads {threads} {input[0]} {input[1]} {output.fq1_paired} {output.fq1_unpaired} {output.fq2_paired} {output.fq2_unpaired} {params.trim_method}
         ) &> {log}
         """

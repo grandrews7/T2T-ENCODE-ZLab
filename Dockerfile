@@ -13,7 +13,6 @@ RUN apt-get update && \
     zip \
     pigz \
     bedtools \
-    bowtie2 \
     # for samtools 
     zlib1g-dev \
     libncurses-dev \
@@ -36,7 +35,7 @@ RUN cd /opt && \
     chmod a+rx bin/kmc && \
     chmod a+rx bin/kmc_genome_counts
 
-ENV SAMTOOLS_VER="1.17"
+ENV SAMTOOLS_VER="1.20"
 RUN cd /usr/bin && \
      wget https://github.com/samtools/samtools/releases/download/"$SAMTOOLS_VER"/samtools-"$SAMTOOLS_VER".tar.bz2 && \
      tar -vxjf samtools-"$SAMTOOLS_VER".tar.bz2 && \
@@ -48,6 +47,7 @@ RUN cd /usr/bin && \
 RUN cd /opt && \
     git clone https://github.com/broadinstitute/picard.git && \
     cd picard/ && \
+    git checkout 5db8017 &&
     ./gradlew shadowJar
 
 RUN cd /opt && \
@@ -63,5 +63,12 @@ RUN cd /opt && \
     unzip fastqc_v0.12.1.zip && \
     cd FastQC && \
     chmod +x fastqc
+
+ENV BOWTIE2_VER="2.5.4"
+
+RUN wget -q -O bowtie2.zip http://sourceforge.net/projects/bowtie-bio/files/bowtie2/"$BOWTIE2_VER"/bowtie2-"$BOWTIE2_VER"-linux-x86_64.zip/download; \ 
+	unzip bowtie2.zip -d /opt/; \ 
+	ln -s /opt/bowtie2-"$BOWTIE2_VER"-linux-x86_64/ /opt/bowtie2; \ 
+	rm bowtie2.zip 
     
 ENV PATH="/usr/bin/samtools/bin:/opt/KMC:/opt/KMC/bin:/opt/picard/build/libs:/opt/FastQC:/opt/Trimmomatic-0.39:${PATH}"

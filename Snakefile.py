@@ -18,13 +18,15 @@ genomes = ["GRCh38", "T2T"]
 kmers = [str(_) for _ in range(50,101,5)]
 metadata = pd.read_csv("Metadata.txt", sep="\t", header=0)
 metadata = metadata[metadata["exp"] == "ENCSR590IHT"]
-
+print(metadata)
 experiments = metadata.exp.unique().tolist()
+exp_bioreps = list(set([exp + "-" + str(biorep) for exp, biorep in zip(metadata.exp, metadata.biorep)]))
+print(exp_bioreps)
 acc_list = metadata.acc.tolist()
 URLs = dict(zip(metadata.acc, metadata.url))
 MD5SUMs = dict(zip(metadata.acc, metadata.md5sum))
 print(URLs)
-
+print([work_dir + "/aln-raw/" + genome + "-" + _ + ".bam" for _ in exp_bioreps for genome in genomes])
 # import rules
 include: "./rules/genome.smk.py"
 include: "./rules/fastq.smk.py"
@@ -33,70 +35,71 @@ include: "./rules/aln.smk.py"
 
 rule all:
     input: 
-        expand(work_dir + "/aln-raw/{genome}-{exp}.bam", genome=genomes, exp=experiments)
-        # expand(work_dir + "/fastq-trimmed/{exp}_{read}.P.fastq.gz", exp=experiments, read = [str(i) for i in range(1,3)])
+        expand(work_dir + "/fastq-raw/{acc}.fastq.gz", acc = acc_list),
+        [work_dir + "/fastq-trimmed/" +  _ + "_1.P.fastq.gz" for _ in exp_bioreps],
+        [work_dir + "/aln-raw/" + genome + "-" + _ + ".bam" for _ in exp_bioreps for genome in genomes]
 
     
 #fastqc prescreen
 
 
-rule samtools_index:
-    input:
-        presort = work_dir + "/aligned/{genome}-{exp}.presorted.bam",
-    output:
-        index = temp(work_dir + "/aligned/{genome}-{exp}.bam.bai"),
-    threads: 32
-    resources:
-        mem_mb=240000,
-        c=32,
-        runtime=240,
-        nodes=1,
-        slurm_partition="4hours"
-    log:
-        work_dir + "/logs/samtools_index/{genome}-{exp}.log"
-    singularity:
-        "docker://clarity001/t2t-encode"
-    shell:
-        """
-        (
-        set -e
-        set -o pipefail
-        echo "Running samtools index"
-        samtools index \
-        -@{threads} \
-        {input.presort} \
-        {output.index}
-        ) &> {log}
-        """
+# rule samtools_index:
+#     input:
+#         presort = work_dir + "/aligned/{genome}-{exp}.presorted.bam",
+#     output:
+#         index = temp(work_dir + "/aligned/{genome}-{exp}.bam.bai"),
+#     threads: 32
+#     resources:
+#         mem_mb=240000,
+#         c=32,
+#         runtime=240,
+#         nodes=1,
+#         slurm_partition="4hours"
+#     log:
+#         work_dir + "/logs/samtools_index/{genome}-{exp}.log"
+#     singularity:
+#         "docker://clarity001/t2t-encode"
+#     shell:
+#         """
+#         (
+#         set -e
+#         set -o pipefail
+#         echo "Running samtools index"
+#         samtools index \
+#         -@{threads} \
+#         {input.presort} \
+#         {output.index}
+#         ) &> {log}
+#         """
 
-rule samtools_filter:
-    input:
-        index = work_dir + "/aligned/{genome}-{exp}.bam.bai",
-        presort = work_dir + "/aligned/{genome}-{exp}.presorted.bam",
-    output:
-        temp(work_dir + "/aligned/{genome}-{exp}.filtered.bam"),
-    threads: 32
-    resources:
-        mem_mb=240000,
-        c=32,
-        runtime=240,
-        nodes=1,
-        slurm_partition="4hours"
-    log:
-        work_dir + "/logs/samtools-filter/{genome}-{exp}.log",
-    singularity:
-        "docker://clarity001/t2t-encode",
-    shell:
-        """
-        (
-        set -e
-        set -o pipefail
-        echo "Running samtools filter"
-        samtools view -b -F 1804 -f 2 -q 2 \
-        -@{threads} \
-        {input.presort} > {output}
-        ) &> {log}
-        """
+# rule samtools_filter:
+#     input:
+#         index = work_dir + "/aligned/{genome}-{exp}.bam.bai",
+#         presort = work_dir + "/aligned/{genome}-{exp}.presorted.bam",
+#     output:
+#         temp(work_dir + "/aligned/{genome}-{exp}.filtered.bam"),
+#     threads: 32
+#     resources:
+#         mem_mb=240000,
+#         c=32,
+#         runtime=240,
+#         nodes=1,
+#         slurm_partition="4hours"
+#     log:
+#         work_dir + "/logs/samtools-filter/{genome}-{exp}.log",
+#     singularity:
+#         "docker://clarity001/t2t-encode",
+#     shell:
+#         """
+#         (
+#         set -e
+#         set -o pipefail
+#         echo "Running samtools filter"
+#         samtools view -b -F 1804 -f 2 -q 2 \
+#         -@{threads} \
+#         {input.presort} > {output}
+#         ) &> {log}
+#         """
 
 
 # rule unique_kmer_filtering:
