@@ -6,7 +6,7 @@ def get_fastq_list(wildcards):
     return([work_dir + "/fastq-raw/" + acc + ".fastq.gz" for acc in tmp.acc.tolist()])
 
 
-rule trim:
+rule trim_pe:
     input: 
         get_fastq_list
     output: 

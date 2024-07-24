@@ -1,4 +1,37 @@
-rule bowtie2_align:
+rule bowtie2_align_se:
+    input:
+        work_dir + "/fastq-trimmed-se/{exp}-{biorep}.fastq.gz"
+    
+    output:
+        work_dir + "/aln-raw-se/{genome}-{exp}-{biorep}.bam"
+
+    threads: 24
+    resources:
+        mem_mb=90000,
+        c=24,
+        runtime=240,
+        nodes=1,
+        slurm_partition="12hours"
+    log:
+        work_dir + "/logs/bowtie2_align_se/{genome}-{exp}-{biorep}.log"
+    singularity:
+        "docker://clarity001/t2t-encode"
+    shell:
+        """
+        (
+        echo "Running bowtie2 align"
+        bowtie2 --no-discordant --no-mixed --very-sensitive --no-unal --omit-sec-seq --xeq --reorder \
+        --threads {threads} \
+        -x {work_dir}/genome/{wildcards.genome}.fa \
+        -1 {input[0]} \
+        -2 {input[1]} |\
+        samtools view -@{threads} \
+        -o {output}
+        ) &> {log}
+        """
+
+    
+rule bowtie2_align_pe:
     input:
         work_dir + "/fastq-trimmed/{exp}-{biorep}_1.P.fastq.gz", 
         work_dir + "/fastq-trimmed/{exp}-{biorep}_2.P.fastq.gz"
