@@ -1,0 +1,8 @@
+printshellcmds: True
+rerun-incomplete: True
+jobs: 32
+max-jobs-per-second: 1
+restart-times: 3
+use-apptainer: True
+apptainer-args: "-B /data:/data -B /zata:/zata"
+apptainer-prefix: /zata/zippy/andrewsg/scratch/env

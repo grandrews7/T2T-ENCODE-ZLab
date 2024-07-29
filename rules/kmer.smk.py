@@ -1,52 +1,51 @@
 rule kmc:
     input:
-        fa = work_dir + "/genome/{genome}.fa",
+        fa = workDir + "/genome/{genome}.fa",
     output:
-        pre = work_dir + "/kmer/{genome}-k{kmer}.kmc_pre",
-        shuf = work_dir + "/kmer/{genome}-k{kmer}.kmc_suf"
-    threads: 4
+        pre = workDir + "/kmer/{genome}-k{kmer}.kmc_pre",
+        shuf = workDir + "/kmer/{genome}-k{kmer}.kmc_suf"
+    threads: 8
     resources:
         mem_mb=240000,
-        c=4,
-        runtime=240,
+        c=8,
+        runtime=720,
         nodes=1,
-        slurm_partition="4hours"
+        slurm_partition="12hours"
     log:
-        work_dir + "/logs/kmc/{genome}-k{kmer}.log"
+        workDir + "/logs/kmc/{genome}-k{kmer}.log"
     singularity:
-        "docker://clarity001/t2t-encode"
-    params: prefix = work_dir
+        "docker://andrewsg/t2t-encode"
+    params: prefix = workDir
     shell:
         """
         (
         echo "Creating kmer suffix trees"
         rm -rf /tmp/{wildcards.genome}-k{wildcards.kmer}; mkdir /tmp/{wildcards.genome}-k{wildcards.kmer}
-        kmc -k{wildcards.kmer} -m128 -fm -ci1 -t{threads} {input.fa} {params.prefix}/kmer/{wildcards.genome}-k{wildcards.kmer} /tmp/{wildcards.genome}-k{wildcards.kmer}
+        kmc -k{wildcards.kmer} -m64 -fm -ci1 -t{threads} {input.fa} {params.prefix}/kmer/{wildcards.genome}-k{wildcards.kmer} /tmp/{wildcards.genome}-k{wildcards.kmer}
         ) &> {log}
         """
 
-rule kmc_genome_counts: #ensure to use flags --cores all --resources kmc_genome_count_jobs=1 when running snakemake
+rule kmc_genome_counts:
     input:
-        fa = work_dir + "/genome/{genome}.fa",
-        sizes = work_dir + "/genome/{genome}.sizes.txt",
-        pre = work_dir + "/kmer/{genome}-k{kmer}.kmc_pre",
-        shuf = work_dir + "/kmer/{genome}-k{kmer}.kmc_suf",
+        fa = workDir + "/genome/{genome}.fa",
+        sizes = workDir + "/genome/{genome}.sizes.txt",
+        pre = workDir + "/kmer/{genome}-k{kmer}.kmc_pre",
+        shuf = workDir + "/kmer/{genome}-k{kmer}.kmc_suf",
     output:
-        wig = temp(work_dir + "/kmer/{genome}-k{kmer}.wig"),
-    threads: 24
+        wig = workDir + "/kmer/{genome}-k{kmer}.wig",
+    threads: 8
     resources:
-        mem_mb=300000,
-        c=24,
-        runtime=240,
+        mem_mb=240000,
+        c=8,
+        runtime=720,
         nodes=1,
-        slurm_partition="4hours",
-        kmc_genome_count_jobs=1,
+        slurm_partition="12hours",
     log:
-        work_dir + "/logs/kmc_genome_counts/{genome}-k{kmer}.log",
+        workDir + "/logs/kmc_genome_counts/{genome}-k{kmer}.log",
     singularity:
-        "docker://clarity001/t2t-encode"
+        "docker://andrewsg/t2t-encode"
     params: 
-        prefix = work_dir
+        prefix = workDir
     shell:
         """
         (
@@ -57,21 +56,21 @@ rule kmc_genome_counts: #ensure to use flags --cores all --resources kmc_genome_
 
 rule wigToBigWig:
     input:
-        wig = work_dir + "/kmer/{genome}-k{kmer}.wig",
-        sizes = work_dir + "/genome/{genome}.sizes.txt",
+        wig = workDir + "/kmer/{genome}-k{kmer}.wig",
+        sizes = workDir + "/genome/{genome}.sizes.txt",
     output:
-        bw = work_dir + "/BigWig/{genome}-k{kmer}-bw/{genome}-k{kmer}.bw",
-    threads: 1
+        bw = workDir + "/kmer/{genome}-k{kmer}.bw",
+    threads: 8
     resources:
-        mem_mb=4000,
-        c=1,
-        runtime=240,
+        mem_mb=240000,
+        c=8,
+        runtime=720,
         nodes=1,
-        slurm_partition="4hours",
+        slurm_partition="12hours",
     log:
-        work_dir + "/logs/wigToBigWig/{genome}-k{kmer}.log"
+        workDir + "/logs/wigToBigWig/{genome}-k{kmer}.log"
     singularity:
-        "docker://clarity001/t2t-encode"
+        "docker://andrewsg/t2t-encode"
     shell:
         """
         (
@@ -79,3 +78,4 @@ rule wigToBigWig:
         wigToBigWig {input.wig} {input.sizes} {output.bw}
         ) &> {log}
         """
+    

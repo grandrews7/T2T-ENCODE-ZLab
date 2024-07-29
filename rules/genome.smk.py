@@ -1,7 +1,7 @@
 rule get_genome:
     output:
-        fa = work_dir + "/genome/{genome}.fa",
-        sizes = work_dir + "/genome/{genome}.sizes.txt",
+        fa = workDir + "/genome/{genome}.fa",
+        sizes = workDir + "/genome/{genome}.sizes.txt",
     threads: 1
     resources:
         mem_mb=4000,
@@ -10,7 +10,7 @@ rule get_genome:
         nodes=1,
         slurm_partition="4hours"
     log:
-        work_dir + "/logs/get_genome/{genome}.log"
+        workDir + "/logs/get_genome/{genome}.log"
     singularity:
         "docker://clarity001/t2t-encode"
     shell:
@@ -35,29 +35,25 @@ rule get_genome:
 
 rule bowtie2_build:
     input:
-        fa = work_dir + "/genome/{genome}.fa",
+        fa = workDir + "/genome/{genome}.fa",
     output:
-        multiext(work_dir + "/genome/{genome}.fa", ".1.bt2", ".2.bt2", ".3.bt2", ".4.bt2", ".rev.1.bt2", ".rev.2.bt2")
+        multiext(workDir + "/genome/{genome}.fa", ".1.bt2", ".2.bt2", ".3.bt2", ".4.bt2", ".rev.1.bt2", ".rev.2.bt2")
     threads: 32
     resources:
-        mem_mb=240000,
-        c=32,
+        mem_mb=90000,
+        c=24,
         runtime=240,
         nodes=1,
-        slurm_partition="4hours"
+        slurm_partition="12hours"
     log:
-        work_dir + "/logs/bowtie2_build/{genome}.log"
+        workDir + "/logs/bowtie2_build/{genome}.log"
     singularity:
         "docker://clarity001/t2t-encode"
-    params: 
-        prefix = work_dir
     shell:
         """
         (
-        set -e
-        set -o pipefail
         echo "Running bowtie2 build"
-        cd {params.prefix}/genome
-        bowtie2-build --threads {threads} {wildcards.genome}.fa {wildcards.genome}.fa
+
+        bowtie2-build --threads {threads} {input} {input}
         ) &> {log}
         """
