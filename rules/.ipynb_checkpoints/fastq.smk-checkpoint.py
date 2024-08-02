@@ -90,7 +90,7 @@ rule trim_pe:
     log:
         workDir + "/logs/trim_pe/{exp}-{biorep}.log",
     singularity:
-        "docker://andrewsg/t2t-encode",
+        "docker://clarity001/t2t-encode",
     params:
         trimmomatic = "/opt/Trimmomatic-0.39/trimmomatic-0.39.jar",
         trim_method = "LEADING:3 TRAILING:3 SLIDINGWINDOW:4:15 MINLEN:36",
@@ -116,7 +116,7 @@ rule trim_se:
     log:
         workDir + "/logs/trim_se/{exp}-{biorep}.log",
     singularity:
-        "docker://andrewsg/t2t-encode",
+        "docker://clarity001/t2t-encode",
     params:
         trimmomatic = "/opt/Trimmomatic-0.39/trimmomatic-0.39.jar",
         trim_method = "LEADING:3 TRAILING:3 SLIDINGWINDOW:4:15 MINLEN:36",

@@ -1,0 +1,31 @@
+digraph snakemake_dag {
+    graph[bgcolor=white, margin=0, ratio=0.8];
+    node[shape=box, style=rounded, fontname=Inter, fontsize=10, penwidth=2];
+    edge[penwidth=2, color=grey];
+        0[label = "Unique Peaks", color = "0.36 0.6 0.85", style="rounded"];
+        1[label = "Download FASTQ files from ENCODE", color = "0.41 0.6 0.85", style="rounded"];
+        2[label = "Merge single-end FASTQ files by biological replicate", color = "0.46 0.6 0.85", style="rounded"];
+        3[label = "Merge paired-end FASTQ files by biological replicate", color = "0.00 0.6 0.85", style="rounded"];
+        4[label = "Trim single-end data with trimmomatic", color = "0.26 0.6 0.85", style="rounded"];
+        5[label = "Trim paired-end data with trimmomatic", color = "0.05 0.6 0.85", style="rounded"];
+        6[label = "Align trimmed single-end reads with bowtie2", color = "0.15 0.6 0.85", style="rounded"];
+        7[label = "Align trimmed paired-end reads with bowtie2", color = "0.31 0.6 0.85", style="rounded"];
+        8[label = "Use samtools to merge paired-end reads and filter PCR duplicates", color = "0.10 0.6 0.85", style="rounded"];
+        9[label = "Filter reads by unique kmer", color = "0.51 0.6 0.85", style="rounded"];
+        10[label = "Use macs2 to call peaks", color = "0.21 0.6 0.85", style="rounded"];
+        11[label = "Download the genome .chain file", color = "0.62 0.6 0.85", style="rounded"];
+        12[label = "Use liftOver to find peaks unique to the T2T reference genome", color = "0.56 0.6 0.85", style="rounded"];
+        12 -> 0
+        1 -> 2
+        1 -> 3
+        2 -> 4
+        3 -> 5
+        4 -> 6
+        5 -> 7
+        7 -> 8
+        6 -> 8
+        8 -> 9
+        9 -> 10
+        10 -> 12
+        11 -> 12
+}
