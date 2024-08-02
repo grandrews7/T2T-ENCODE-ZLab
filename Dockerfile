@@ -22,7 +22,7 @@ RUN apt-get update && \
     openjdk-17-jdk openjdk-17-jre
 
 RUN pip install --upgrade pip && \
-    pip install pysam pyBigWig numpy
+    pip install pysam pyBigWig numpy macs3 deeptools
 
 RUN for i in wigToBigWig liftOver bigBedToBed bedToBigBed; do \
      wget -q http://hgdownload.soe.ucsc.edu/admin/exe/linux.x86_64/$i -O /bin/$i ; chmod +x /bin/$i ; done
@@ -69,5 +69,17 @@ RUN wget -q -O bowtie2.zip http://sourceforge.net/projects/bowtie-bio/files/bowt
 	unzip bowtie2.zip -d /opt/; \ 
 	ln -s /opt/bowtie2-"$BOWTIE2_VER"-linux-x86_64/ /opt/bowtie2; \ 
 	rm bowtie2.zip 
+
+RUN mkdir /opt/meme
+ADD http://meme-suite.org/meme-software/5.4.1/meme-5.4.1.tar.gz /opt/meme
+WORKDIR /opt/meme/
+RUN tar zxvf meme-5.4.1.tar.gz && rm -fv meme-5.4.1.tar.gz
+RUN cd /opt/meme/meme-5.4.1 && \
+     ./configure --prefix=/opt  --enable-build-libxml2 --enable-build-libxslt  && \
+     make && \
+     make install && \
+     rm -rfv /opt/meme
+
+ENV PATH="/opt/libexec/meme-5.4.1:/opt/bin:${PATH}"
     
 ENV PATH="/usr/bin/samtools/bin:/opt/KMC:/opt/KMC/bin:/opt/picard/build/libs:/opt/FastQC:/opt/Trimmomatic-0.39:${PATH}"

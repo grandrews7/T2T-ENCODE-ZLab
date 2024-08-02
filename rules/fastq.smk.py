@@ -37,16 +37,25 @@ rule merge_fastq_se:
     threads: 8
     resources:
         mem_mb=32000,
-        c=24,
+        c=8,
         runtime=240,
         nodes=1,
         slurm_partition="4hours"
     log:
         workDir + "/logs/merge_fastq_se/{exp}-{biorep}.log"
+    params:
+        inp_len = lambda wildcards, input: len(input)
     shell:
         """
+        (
         echo {input}
-        pigz -cd -p {threads} {input} | pigz -c -p {threads} > {output} 
+        echo {params.inp_len}
+        if [[ {params.inp_len} -eq 1 ]]; then
+            mv {input} {output}
+        else
+            pigz -cd -p {threads} {input} | pigz -c -p {threads} > {output} 
+        fi
+        ) &> {log}
         """
 
 def get_fastq_list_pe(wildcards):
@@ -65,10 +74,19 @@ rule merge_fastq_pe:
         slurm_partition="4hours"
     log:
         workDir + "/logs/merge_fastq_pe/{exp}-{biorep}_{read}.log"
+    params:
+        inp_len =lambda wildcards, input: len(input)
     shell:
         """
+        (
         echo {input}
-        pigz -cd -p {threads} {input} | pigz -c -p {threads} > {output} 
+        echo {params.inp_len}
+        if [[ {params.inp_len} -eq 1 ]]; then
+            mv {input} {output}
+        else
+            pigz -cd -p {threads} {input} | pigz -c -p {threads} > {output} 
+        fi
+        ) &> {log}
         """
 
 rule trim_pe:
@@ -80,10 +98,10 @@ rule trim_pe:
         fq1_unpaired = workDir + "/fastq-trimmed-pe/{exp}-{biorep}_1.U.fastq.gz",
         fq2_paired = workDir + "/fastq-trimmed-pe/{exp}-{biorep}_2.P.fastq.gz",
         fq2_unpaired = workDir + "/fastq-trimmed-pe/{exp}-{biorep}_2.U.fastq.gz"
-    threads: 24
+    threads: 8
     resources:
-        mem_mb=90000,
-        c=24,
+        mem_mb=32000,
+        c=8,
         runtime=240,
         nodes=1,
         slurm_partition="4hours"
@@ -105,10 +123,9 @@ rule trim_pe:
 rule trim_se:
     input: workDir + "/fastq-merged-se/{exp}-{biorep}.fastq.gz",
     output: workDir + "/fastq-trimmed-se/{exp}-{biorep}.fastq.gz",
-    threads: 64
-    threads: 24
+    threads: 8
     resources:
-        mem_mb=90000,
+        mem_mb=32000,
         c=24,
         runtime=240,
         nodes=1,

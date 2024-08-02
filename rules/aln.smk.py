@@ -5,7 +5,7 @@ rule bowtie2_align_se:
     output:
         workDir + "/aln-raw-se/{genome}-{exp}-{biorep}.bam",
 
-    threads: 24
+    threads: 8
     resources:
         mem_mb=32000,
         c=8,
@@ -67,7 +67,8 @@ rule bowtie2_align_pe:
         """
 
 def get_bams(wildcards):
-    tmp_df = metadata[(metadata["exp"] == wildcards.exp)].reset_index(drop=True)
+    
+    tmp_df = metadata[(metadata["exp"] == wildcards.exp) & (metadata["biorep"] == int(wildcards.biorep))].reset_index(drop=True)
     read_type = tmp_df.run_type.tolist()[0]
     if read_type == "paired-ended":
         dir = workDir + "/aln-raw-pe"
@@ -78,7 +79,6 @@ def get_bams(wildcards):
     bioreps = tmp_df.biorep.unique().tolist()
     for b in bioreps:
         bams.append(dir + "/" + wildcards.genome + "-" + wildcards.exp + "-" + str(b) + ".bam")
-    print(bams)
     return(bams)
 
 def get_flag(w):
@@ -92,16 +92,16 @@ def get_flag(w):
     
 rule filter_bam:
     input: get_bams
-    output: workDir + "/aln-filtered/{genome}-{exp}.bam"
-    threads: 32
+    output: workDir + "/aln-filtered/{genome}-{exp}-{biorep}.bam"
+    threads: 16
     resources:
-        mem_mb=32000,
+        mem_mb=60000,
         c=8,
         runtime=720,
         nodes=1,
         slurm_partition="12hours"  
     log:
-        workDir + "/logs/filter_bam/{genome}-{exp}.log"
+        workDir + "/logs/filter_bam/{genome}-{exp}-{biorep}.log"
     singularity:
         "docker://andrewsg/t2t-encode"
     params:
@@ -109,12 +109,10 @@ rule filter_bam:
     shell:
         """
         (
-        echo "Merging BAM files"
-        samtools merge -f -@ {threads} -o {wildcards.genome}-{wildcards.exp}.merge.bam {input}
         echo "Sorting by coordinate"
-        samtools sort -@ {threads} -o {wildcards.genome}-{wildcards.exp}.sort.bam {wildcards.genome}-{wildcards.exp}.merge.bam
+        samtools sort -@ {threads} -o {wildcards.genome}-{wildcards.exp}-{wildcards.biorep}.sort.bam {input}
         echo "Indexing BAM file"
-        samtools index -@ {threads} {wildcards.genome}-{wildcards.exp}.sort.bam
+        samtools index -@ {threads} {wildcards.genome}-{wildcards.exp}-{wildcards.biorep}.sort.bam
         
 
         java -jar /opt/picard/build/libs/picard.jar MarkDuplicates \
@@ -128,9 +126,9 @@ rule filter_bam:
         -@{threads} \
         -o  {output} \
         {wildcards.genome}-{wildcards.exp}.markdup.bam
-        # rm {wildcards.genome}-{wildcards.exp}.merge.bam
-        # rm {wildcards.genome}-{wildcards.exp}.sort.bam
-        # rm {wildcards.genome}-{wildcards.exp}.markdup.bam
+        rm {wildcards.genome}-{wildcards.exp}.merge.bam
+        rm {wildcards.genome}-{wildcards.exp}.sort.bam
+        rm {wildcards.genome}-{wildcards.exp}.markdup.bam
         ) &> {log}
         """
 
@@ -139,10 +137,10 @@ rule filter_bam:
 
 rule kmer_filter:
     input: 
-        bam = workDir + "/aln-filtered/{genome}-{exp}.bam",
+        bam = workDir + "/aln-filtered/{genome}-{exp}-{biorep}.bam",
         kmer_bigWigs = [workDir + "/kmer/{genome}-k" + _ + ".bw" for _ in kmers]
     output:
-        workDir + "/aln-final/{genome}-{exp}.bam"
+        workDir + "/aln-final/{genome}-{exp}-{biorep}.bam"
     threads: 32
     resources:
         mem_mb=32000,
@@ -151,7 +149,7 @@ rule kmer_filter:
         nodes=1,
         slurm_partition="12hours"   
     log:
-        workDir + "/logs/kmer_filter/{genome}-{exp}.log"
+        workDir + "/logs/kmer_filter/{genome}-{exp}-{biorep}.log"
     singularity:
         "docker://andrewsg/t2t-encode"
     params:
@@ -162,8 +160,8 @@ rule kmer_filter:
         """
         if [ {params.run_type} == "paired-ended" ]; then
             echo "Sorting paired-ended BAM by name"
-            samtools sort -n -@ {threads} -o {wildcards.genome}-{wildcards.exp}.namesort.bam {input.bam}
-            python3 {params.script} -b {wildcards.genome}-{wildcards.exp}.namesort.bam \
+            samtools sort -n -@ {threads} -o {wildcards.genome}-{wildcards.exp}-{wildcards.biorep}.namesort.bam {input.bam}
+            python3 {params.script} -b {wildcards.genome}-{wildcards.exp}-{wildcards.biorep}.namesort.bam \
             -k {params.kmer_bigWigs} \
             -r {params.run_type} \
             -o {output}
