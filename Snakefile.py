@@ -25,7 +25,7 @@ trt_experiments = metadata[metadata["target"].isin(TFs_of_interest)].exp.unique(
 ctrl_experiments = metadata[metadata["exp"].isin(trt_experiments)].control.unique().tolist()
 
 experiments = trt_experiments + ctrl_experiments
-experiments = ["ENCSR080UEM"]
+experiments = ["ENCSR080UEM", "ENCSR020QUJ"]
 metadata = metadata[metadata["exp"].isin(experiments)]
 print(metadata)
 metadata_pe = metadata[metadata["run_type"] == "paired-ended"].reset_index(drop=True)
