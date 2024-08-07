@@ -77,7 +77,7 @@ rule all:
         [workDir + "/aln-final/" + g + "-" + _ + ".bam" for _ in exp_bioreps for g in genomes]
         # expand(workDir + "/peaks/{genome}-{exp}.narrowPeak", exp = trt_experiments)
 
-
+### test ###
 
     
     
