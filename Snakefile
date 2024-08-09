@@ -6,6 +6,8 @@ import os
 import re
 import sys
 
+### test ###
+
 snakeDir = os.getcwd()
 scriptDir = snakeDir + "/scripts"
 print(scriptDir)
