@@ -111,7 +111,7 @@ rule trim_pe:
         "docker://andrewsg/t2t-encode",
     params:
         trimmomatic = "/opt/Trimmomatic-0.39/trimmomatic-0.39.jar",
-        trim_method = "LEADING:3 TRAILING:3 SLIDINGWINDOW:4:15 MINLEN:36",
+        trim_method = "LEADING:3 TRAILING:3 SLIDINGWINDOW:4:15 MINLEN:25",
     shell:
         """
         (
@@ -136,7 +136,7 @@ rule trim_se:
         "docker://andrewsg/t2t-encode",
     params:
         trimmomatic = "/opt/Trimmomatic-0.39/trimmomatic-0.39.jar",
-        trim_method = "LEADING:3 TRAILING:3 SLIDINGWINDOW:4:15 MINLEN:36",
+        trim_method = "LEADING:3 TRAILING:3 SLIDINGWINDOW:4:15 MINLEN:25",
     shell:
         """
         (

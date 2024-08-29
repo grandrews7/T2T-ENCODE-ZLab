@@ -10,7 +10,7 @@ rule kmc:
         c=8,
         runtime=720,
         nodes=1,
-        slurm_partition="12hours"
+        slurm_partition="5days"
     log:
         workDir + "/logs/kmc/{genome}-k{kmer}.log"
     singularity:
@@ -39,7 +39,7 @@ rule kmc_genome_counts:
         c=8,
         runtime=720,
         nodes=1,
-        slurm_partition="12hours",
+        slurm_partition="5days",
     log:
         workDir + "/logs/kmc_genome_counts/{genome}-k{kmer}.log",
     singularity:
@@ -66,7 +66,7 @@ rule wigToBigWig:
         c=8,
         runtime=720,
         nodes=1,
-        slurm_partition="12hours",
+        slurm_partition="5days",
     log:
         workDir + "/logs/wigToBigWig/{genome}-k{kmer}.log"
     singularity:

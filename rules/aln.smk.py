@@ -110,25 +110,26 @@ rule filter_bam:
         """
         (
         echo "Sorting by coordinate"
-        samtools sort -@ {threads} -o {wildcards.genome}-{wildcards.exp}-{wildcards.biorep}.sort.bam {input}
+        rm -f /tmp/{wildcards.genome}-{wildcards.exp}-{wildcards.biorep}*
+        samtools sort -@ {threads} -T /tmp/{wildcards.genome}-{wildcards.exp}-{wildcards.biorep} -o {wildcards.genome}-{wildcards.exp}-{wildcards.biorep}.sort.bam {input}
+            
         echo "Indexing BAM file"
         samtools index -@ {threads} {wildcards.genome}-{wildcards.exp}-{wildcards.biorep}.sort.bam
+        echo "Marking duplicates"
         
-
         java -jar /opt/picard/build/libs/picard.jar MarkDuplicates \
-            INPUT={wildcards.genome}-{wildcards.exp}.sort.bam \
-            OUTPUT={wildcards.genome}-{wildcards.exp}.markdup.bam \
-            METRICS_FILE={wildcards.genome}-{wildcards.exp}.markdup.txt \
+            INPUT={wildcards.genome}-{wildcards.exp}-{wildcards.biorep}.sort.bam \
+            OUTPUT={wildcards.genome}-{wildcards.exp}-{wildcards.biorep}.markdup.bam \
+            METRICS_FILE={wildcards.genome}-{wildcards.exp}-{wildcards.biorep}.markdup.txt \
             ASSUME_SORT_ORDER=coordinate
 
         echo "Filtering BAM file (-f {params.flag[0]}; -F {params.flag[1]})"
         samtools view -b -F {params.flag[0]} -f {params.flag[1]} -q 2 \
         -@{threads} \
         -o  {output} \
-        {wildcards.genome}-{wildcards.exp}.markdup.bam
-        rm {wildcards.genome}-{wildcards.exp}.merge.bam
-        rm {wildcards.genome}-{wildcards.exp}.sort.bam
-        rm {wildcards.genome}-{wildcards.exp}.markdup.bam
+        {wildcards.genome}-{wildcards.exp}-{wildcards.biorep}.markdup.bam
+        rm -f {wildcards.genome}-{wildcards.exp}-{wildcards.biorep}.sort.bam
+        rm -f {wildcards.genome}-{wildcards.exp}-{wildcards.biorep}.markdup.bam
         ) &> {log}
         """
 
@@ -141,10 +142,10 @@ rule kmer_filter:
         kmer_bigWigs = [workDir + "/kmer/{genome}-k" + _ + ".bw" for _ in kmers]
     output:
         workDir + "/aln-final/{genome}-{exp}-{biorep}.bam"
-    threads: 32
+    threads: 4
     resources:
-        mem_mb=32000,
-        c=8,
+        mem_mb=16000,
+        c=4,
         runtime=720,
         nodes=1,
         slurm_partition="12hours"   
@@ -158,6 +159,8 @@ rule kmer_filter:
         kmer_bigWigs = lambda w, input: ",".join(input.kmer_bigWigs)
     shell:
         """
+        (
+        echo {params.script}
         if [ {params.run_type} == "paired-ended" ]; then
             echo "Sorting paired-ended BAM by name"
             samtools sort -n -@ {threads} -o {wildcards.genome}-{wildcards.exp}-{wildcards.biorep}.namesort.bam {input.bam}
@@ -172,4 +175,5 @@ rule kmer_filter:
             -r {params.run_type} \
             -o {output}
         fi
+        ) &> {log}
         """
