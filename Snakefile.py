@@ -13,22 +13,12 @@ workdir: "/zata/zippy/andrewsg/scratch"
 workDir = os.getcwd()
 basedir = "/data/zusers/andrewsg/TF-STR/T2T-ENCODE-Pipeline"
 genomes = ["GRCh38", "T2T"]
-#genomes = ["GRCh38"]
 kmers = [str(_) for _ in range(30,101,5)]
 # Read in metadata
+
 metadata = pd.read_csv(basedir + "/Metadata.txt", sep="\t", header=0)
-ZNF_TFs = metadata[metadata["target"].str.contains("ZNF")].target.unique().tolist()
-print("There are {} ZNF TFs".format(len(ZNF_TFs)))
-
-trt_experiments = metadata[metadata["target"].isin(ZNF_TFs)].exp.unique().tolist()
-ctrl_experiments = metadata[metadata["exp"].isin(trt_experiments)].control.unique().tolist()
-
-experiments = trt_experiments + ctrl_experiments
-
-
-# qc = pd.read_csv(basedir + "/QC.txt", sep="\t", header=0)
-# experiments = list(set([x.split("-")[1] for x in qc[qc["aln-raw"] == 0]["Genome-Experiment-Biorep"].tolist()]))
-# experiments = ["ENCSR063FUV", "ENCSR934WOF"]
+ctrl_experiments = metadata[(metadata["target"] == "Control") & (metadata["read_length"] >= 100)].exp.unique().tolist()
+trt_experiments = metadata[(metadata["target"] != "Control") & (metadata["read_length"] >= 100) & (metadata["control"].isin(ctrl_experiments))].exp.unique().tolist()
 metadata = metadata[metadata["exp"].isin(experiments)]
 
 metadata_pe = metadata[metadata["run_type"] == "paired-ended"].reset_index(drop=True)
